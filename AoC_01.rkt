@@ -8,30 +8,22 @@
 ;;;for each elf.
 #lang racket
 
-;;TODO: There's no need to iterate through the input twice.
-;;Combine these functions so sum-calories works directly with the file
-(define (read-lines file)
-  (let ((line (read-line file)))
-    (if (eof-object? line) null
-        (cons (string->number (string-trim line))
-              (read-lines file)))))
-
-(define (sum-calories lst)
-  (define (iter acc cals lst)
-    (cond ((null? lst) (cons acc cals))
-          ((number? (car lst))
-           (iter (+ acc (car lst)) cals (cdr lst)))
-          (else
-           (iter 0 (cons acc cals) (cdr lst)))))
-  (iter 0 null lst))
+(define (sum-calories file)
+  (define (iter acc cals)
+    (let ((line (read-line file)))
+      (cond ((eof-object? line) (cons acc cals))
+            ((string=? "\r" line)
+             (iter 0 (cons acc cals)))
+            (else
+             (iter (+ acc (string->number (string-trim line))) cals)))))
+  (iter 0 null))
 
 
-(define input-file (open-input-file "Input1.txt"))
-(define input (read-lines input-file))
+(define input-file (open-input-file "Input01.txt"))
+(define totals (sort (sum-calories input-file) >))
 (close-input-port input-file)
 
-(define totals (sum-calories input))
 (display "Part 1: ")
-(argmax identity totals)
+(car totals)
 (display "Part 2: ")
-(foldl + 0 (take (sort totals >) 3))
+(foldl + 0 (take totals 3))
