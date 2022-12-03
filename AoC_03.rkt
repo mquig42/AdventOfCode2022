@@ -5,6 +5,9 @@
 ;;;Today's theme is checking for common characters between strings.
 ;;;Not much to say about my solution. Each function is pretty small
 ;;;and straightforward.
+
+;;;UPDATE: Made a variable-arity find-dup function that uses sets.
+;;;This replaces the original find-dup and find-dup3
 #lang racket
 
 (define (read-input file)
