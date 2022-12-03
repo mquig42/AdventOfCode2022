@@ -5,8 +5,8 @@
 ;;;Today's theme is checking for common characters between strings.
 ;;;Not much to say about my solution. Each function is pretty small
 ;;;and straightforward.
-
 #lang racket
+
 (define (read-input file)
   (let ((line (read-line file)))
     (if (eof-object? line) null
