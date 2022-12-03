@@ -37,10 +37,8 @@
 ;;Part 1 solution: Finds the priority level of the duplicate item in a given
 ;;rucksack
 (define (prioritize-rucksack r)
-  (let* ((splitter (/ (length r) 2))
-         (first-half (take r splitter))
-         (second-half (drop r splitter)))
-    (char->priority (find-dup first-half second-half))))
+  (let ((splitter (/ (length r) 2)))
+    (char->priority (find-dup (take r splitter) (drop r splitter)))))
 
 ;;Finds solution for part 2
 (define (solve2 input)
