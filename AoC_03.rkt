@@ -20,19 +20,9 @@
       (+ (- (char->integer c) (char->integer #\a)) 1)
       (+ (- (char->integer c) (char->integer #\A)) 27)))
 
-;;Returns the first member of list-a that is also in list-b
-;;or #f if no match found
-(define (find-dup lst-a lst-b)
-  (cond ((null? lst-a) #f)
-        ((member (car lst-a) lst-b) (car lst-a))
-        (else (find-dup (cdr lst-a) lst-b))))
-
-;;Same as above, but with three lists
-(define (find-dup3 lst-a lst-b lst-c)
-  (cond ((null? lst-a) #f)
-        ((and (member (car lst-a) lst-b) (member (car lst-a) lst-c))
-         (car lst-a))
-        (else (find-dup3 (cdr lst-a) lst-b lst-c))))
+;;Use set intersections to find the common element in any number of lists
+(define (find-dup . lsts)
+  (set-first (apply set-intersect (map list->set lsts))))
 
 ;;Part 1 solution: Finds the priority level of the duplicate item in a given
 ;;rucksack
@@ -44,7 +34,7 @@
 (define (solve2 input)
   (if (null? input) 0
       (+ (char->priority
-          (find-dup3 (first input) (second input) (third input)))
+          (find-dup (first input) (second input) (third input)))
          (solve2 (drop input 3)))))
 
 (define input-file (open-input-file "Input03.txt"))
