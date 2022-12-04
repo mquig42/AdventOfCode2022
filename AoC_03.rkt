@@ -8,6 +8,7 @@
 
 ;;;UPDATE: Made a variable-arity find-dup function that uses sets.
 ;;;This replaces the original find-dup and find-dup3
+;;;UPDATE: Figured out how to use split-at instead of take and drop for part 1
 #lang racket
 
 (define (read-input file)
@@ -30,8 +31,8 @@
 ;;Part 1 solution: Finds the priority level of the duplicate item in a given
 ;;rucksack
 (define (prioritize-rucksack r)
-  (let ((splitter (/ (length r) 2)))
-    (char->priority (find-dup (take r splitter) (drop r splitter)))))
+  (char->priority
+   (call-with-values (λ () (split-at r (/ (length r) 2))) find-dup)))
 
 ;;Finds solution for part 2
 (define (solve2 input)
