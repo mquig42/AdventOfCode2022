@@ -90,3 +90,6 @@
 (count identity (flatten (grid-map visible? input)))
 (display "Part 2: ")
 (argmax identity (flatten (grid-map scenic-score input)))
+
+(display "\r=== Map of Visible Trees ===\r")
+(map (λ (line) (list->string (map (λ (x) (if x #\▲ #\.)) line))) (grid-map visible? input))
