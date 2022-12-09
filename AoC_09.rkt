@@ -8,6 +8,12 @@
 ;;;Haven't seen part 2 yet, but it's likely to involve chaining these
 ;;;length-1 ropes together to form longer ropes.
 ;;;Update: Part 1 is done, part 2 is exactly what I was expecting
+
+;;;For part 2, it may be best to store a rope in reverse order
+;;;So it's a list of 10 coords with the tail of the rope at the head of the list
+;;;This makes it easier to iterate over, and faster to get the tail
+
+;;;The original part 1 solution has been replaced using a rope of length 2
 #lang racket
 
 (define (read-input file)
@@ -89,34 +95,45 @@
   (if (adjacent? head tail) tail
       (move-coord (get-direction head tail) tail)))
 
-;;updates head and tail coords, and tracks all positions visited by tail
-;;after following a single move instruction from input
-(define (follow-instr-1 direction distance head tail visited)
-  (if (= distance 0) (list head tail visited)
-      (let* ((new-head (move-coord direction head))
-             (new-tail (move-tail new-head tail)))
-        (follow-instr-1 direction
-                        (- distance 1)
-                        new-head new-tail
-                        (set-add visited new-tail)))))
+;;Moves the head of rope 1 space in direction
+;;returns resulting rope
+(define (move-rope direction rope)
+  (cond ((null? rope) null)
+        ((null? (cdr rope)) (cons (move-coord direction (car rope)) null))
+        (else
+         (let ((new-rope (move-rope direction (cdr rope))))
+           (cons (move-tail (car new-rope) (car rope)) new-rope)))))
 
-;;Follows the entire instruction sequence for part 1
-;;state is a list containing head, tail, and visited
-(define (follow-instrs-1 instrs state)
+;;Move the head of a rope 1 space in any direction
+;;Return resulting rope and set of coords visited by tail
+(define (follow-instr direction distance rope visited)
+  (if (= distance 0) (list rope visited)
+      (let ((new-rope (move-rope direction rope)))
+        (follow-instr direction
+                      (- distance 1)
+                      new-rope
+                      (set-add visited (car new-rope))))))
+
+;;Follow all instructions from input
+;;State is a list containing rope and visited list
+(define (follow-instrs instrs state)
   (if (null? instrs) state
-      (follow-instrs-1 (cdr instrs)
-                       (follow-instr-1 (first (first instrs))
-                                       (second (first instrs))
-                                       (first state)
-                                       (second state)
-                                       (third state)))))
+      (follow-instrs (cdr instrs)
+                     (follow-instr (first (first instrs))
+                                   (second (first instrs))
+                                   (first state)
+                                   (second state)))))
 
 
 (define input-file (open-input-file "Input09.txt"))
 (define input (read-input input-file))
 (close-input-port input-file)
 (define origin (make-coord 0 0))
+(define origin-1 (map (λ (x) origin) (range 2)))
+(define origin-2 (map (λ (x) origin) (range 10)))
 
-(define end-state (follow-instrs-1 input (list origin origin (set))))
 (display "Part 1: ")
-(set-count (third end-state))
+(set-count (second (follow-instrs input (list origin-1 (set)))))
+
+(display "Part 2: ")
+(set-count (second (follow-instrs input (list origin-2 (set)))))
