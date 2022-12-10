@@ -10,6 +10,8 @@
 ;;;a word in giant latters. Those are always fun. I'll finish in the morning,
 ;;;but it looks like my approach to part 1 of making a vector containing
 ;;;the value of the x register during every cycle will set me up well for part 2
+;;Update: Had to tweak things a bit. Switched from a vector to a list.
+;;It makes part 1 less efficient, but is better for part 2
 #lang racket
 
 (define (read-input file)
@@ -20,22 +22,40 @@
                  (string->number (second (string-split line)))
                  (read-input file))))))
 
-(define (follow-instrs instrs)
+;;Makes a list containing the value of the X register for each clock cycle
+(define (plot-x instrs)
   (define (iter instrs x hist)
-    (cond ((null? instrs) (cons x hist))
+    (cond ((null? instrs) hist)
           ((eq? (car instrs) "noop") (iter (cdr instrs) x (cons x hist)))
           (else (iter (cdr instrs)
                       (+ x (car instrs))
                       (cons x (cons x hist))))))
-  (list->vector (reverse (iter instrs 1 '(0)))))
+  (reverse (iter instrs 1 '(0))))
 
-(define input-file (open-input-file "Test10-1.txt"))
+(define (crt-pixel h x)
+  (if (<= (abs (- h x)) 1) #\▓ #\░))
+
+(define (draw-screen signals h)
+  (cond ((null? signals) (void))
+        ((= h 39)
+         (display (crt-pixel h (car signals)))
+         (display "│\r│")
+         (draw-screen (cdr signals) 0))
+        (else
+         (display (crt-pixel h (car signals)))
+         (draw-screen (cdr signals) (+ h 1)))))
+
+(define input-file (open-input-file "Input10.txt"))
 (define input (read-input input-file))
 (close-input-port input-file)
 
-(define signals (follow-instrs input))
+(define signals (plot-x input))
 
 (display "Part 1: ")
-(foldl + 0 (map (λ (x)
-                  (* (vector-ref signals x) x))
-                '(20 60 100 140 180 220)))
+(foldl + 0 (map (λ (x) (* (list-ref signals x) x)) (range 20 221 40)))
+
+(display "\rPart 2:\r")
+(display "╭────────────────────────────────────────╮\r│")
+(draw-screen (cdr signals) 0)
+(display "│││││││││││││││││││││││││││││││││││││││││\r")
+(display "╰┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴Elfdroid┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴╯")
