@@ -84,13 +84,9 @@
                         (make-coord (get-row from) (- (get-col from) 1))
                         (make-coord (get-row from) (+ (get-col from) 1))))))
 
-;;Starting point isn't always in the same place, need to search for it
-;;Note: will infinite loop if grid doesn't contain a valid atarting point
-(define (find-start grid)
-  (car (filter (λ (coord) (start? grid coord)) (enumerate-coords grid))))
-
 ;;Returns length of shortest path from start to end in grid
-(define (shortest-path grid start-coord)
+;;start can be any point with a height of start-val
+(define (shortest-path grid start-val)
   (let ((unvisited (q-init (enumerate-coords grid)))
         (visited (mutable-set))
         (distances (make-hash)))
@@ -109,25 +105,20 @@
                                       (get-valid-moves grid coord)))
                     (set-add! visited coord)
                     (visit (q-lowest! unvisited))))))
-    (q-reduce-priority! unvisited start-coord +inf.0 0)
-    (hash-set! distances start-coord 0)
+    (for-each (λ (x) 
+                (q-reduce-priority! unvisited x +inf.0 0)
+                (hash-set! distances x 0))
+              (filter (λ (coord) (eq? (get-height grid coord) start-val))
+                      (enumerate-coords grid)))
     (visit (q-lowest! unvisited))))
-                      
-    
+
 
 (define input-file (open-input-file "Input12.txt"))
 (define input (read-input input-file))
 (close-input-port input-file)
 
 (display "Part 1: ")
-(shortest-path input (find-start input))
+(shortest-path input #\S)
 
-;This takes a couple of minutes to run. An idea to speed it up:
-;Reverse the valid-move? function so it can go up any level but only down 1
-;Part 1 searches for shortest path from E to S
-;Part 2 searches for shortest path from E to a
-(display "Part 2: \r")
-(time (shortest-path input
-                     (argmin (λ (x) (shortest-path input x))
-                             (filter (λ (x) (eq? (get-height input x) #\a))
-                                     (enumerate-coords input)))))
+(display "Part 2: ")
+(shortest-path input #\a)
