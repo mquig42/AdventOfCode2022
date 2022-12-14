@@ -18,8 +18,8 @@
               (read-input file)))))
 
 ;;Convert a single line of input into a list of (lists of) integers
-(define (parse-line str)
-  (call-with-input-string (string-replace (string-trim str) "," " ") read))
+(define (parse-line line)
+  (call-with-input-string (string-replace line "," " ") read))
 
 ;;Returns 1 of left and right are in order, 0 if they aren't,
 ;;and -1 if they're equal
