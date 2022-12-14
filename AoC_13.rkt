@@ -21,33 +21,25 @@
 (define (parse-line str)
   (call-with-input-string (string-replace (string-trim str) "," " ") read))
 
-;;Returns 1 of left and right are in order, -1 if they aren't,
-;;and 0 if they're equal
+;;Returns 1 of left and right are in order, 0 if they aren't,
+;;and -1 if they're equal
 (define (compare left right)
   (cond ((and (number? left) (number? right) (< left right)) 1)
-        ((and (number? left) (number? right) (> left right)) -1)
-        ((and (number? left) (number? right) (= left right)) 0)
-        ((and (null? left) (null? right)) 0)
+        ((and (number? left) (number? right) (> left right)) 0)
+        ((and (number? left) (number? right) (= left right)) -1)
+        ((and (null? left) (null? right)) -1)
         ((and (null? left) (list? right)) 1)
-        ((and (list? left) (null? right)) -1)
+        ((and (list? left) (null? right)) 0)
         ((and (number? left) (list? right)) (compare (list left) right))
         ((and (list? left) (number? right)) (compare left (list right)))
         (else ;Both lists
          (let ((cmp (compare (car left) (car right))))
-           (if (= cmp 0) (compare (cdr left) (cdr right))
+           (if (= cmp -1) (compare (cdr left) (cdr right))
                cmp)))))
 
 ;;Predicate version of compare function. Returns true if left < right
 (define (compare? left right)
   (= (compare left right) 1))
-
-;;Adds up the indices of all the correctly ordered packet pairs
-(define (solve1 lst)
-  (define (iter lst idx acc)
-    (cond ((null? lst) acc)
-          ((= (car lst) 1) (iter (cdr lst) (+ idx 1) (+ idx acc)))
-          (else (iter (cdr lst) (+ idx 1) acc))))
-  (iter lst 1 0))
 
 ;;Inserts dividers, sorts all packets, returns product of the divider indices
 (define (solve2 lst)
@@ -67,7 +59,9 @@
 (close-input-port input-file)
 
 (display "Part 1: ")
-(solve1 (map (λ (x) (compare (first x) (second x))) input))
+(foldl + 0 (map (λ (a b) (* a b))
+                (map (λ (x) (compare (first x) (second x))) input)
+                (range 1 (+ (length input) 1))))
 
 (display "Part 2: ")
 (solve2 (split-pairs input))
