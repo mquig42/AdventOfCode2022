@@ -4,6 +4,9 @@
 
 ;;;Today is all about lists. Reading input was straightforward, just get rid of
 ;;;the commas and let the LISP parser do the rest of the work.
+
+;;;Part 1 was writing a compare function.
+;;;For part 2, all I need to do is sort the input. Easy.
 #lang racket
 
 (define (read-input file)
@@ -16,8 +19,55 @@
 
 ;;Convert a single line of input into a list of (lists of) integers
 (define (parse-line str)
-  (read (open-input-string (string-replace (string-trim str) "," " "))))
+  (call-with-input-string (string-replace (string-trim str) "," " ") read))
 
-(define input-file (open-input-file "Test13.txt"))
+;;Returns 1 of left and right are in order, -1 if they aren't,
+;;and 0 if they're equal
+(define (compare left right)
+  (cond ((and (number? left) (number? right) (< left right)) 1)
+        ((and (number? left) (number? right) (> left right)) -1)
+        ((and (number? left) (number? right) (= left right)) 0)
+        ((and (null? left) (null? right)) 0)
+        ((and (null? left) (list? right)) 1)
+        ((and (list? left) (null? right)) -1)
+        ((and (number? left) (list? right)) (compare (list left) right))
+        ((and (list? left) (number? right)) (compare left (list right)))
+        (else ;Both lists
+         (let ((cmp (compare (car left) (car right))))
+           (if (= cmp 0) (compare (cdr left) (cdr right))
+               cmp)))))
+
+;;Predicate version of compare function. Returns true if left < right
+(define (compare? left right)
+  (= (compare left right) 1))
+
+;;Adds up the indices of all the correctly ordered packet pairs
+(define (solve1 lst)
+  (define (iter lst idx acc)
+    (cond ((null? lst) acc)
+          ((= (car lst) 1) (iter (cdr lst) (+ idx 1) (+ idx acc)))
+          (else (iter (cdr lst) (+ idx 1) acc))))
+  (iter lst 1 0))
+
+;;Inserts dividers, sorts all packets, returns product of the divider indices
+(define (solve2 lst)
+  (let ((sorted (sort (cons '((2)) (cons '((6)) lst)) compare?)))
+    (* (+ (index-of sorted '((2))) 1) (+ (index-of sorted '((6))) 1))))
+
+;;Splits each pair. Returns a list of all packets
+(define (split-pairs lst)
+  (if (null? lst) null
+      (cons (first (car lst))
+            (cons (second (car lst))
+                  (split-pairs (cdr lst))))))
+
+
+(define input-file (open-input-file "Input13.txt"))
 (define input (read-input input-file))
 (close-input-port input-file)
+
+(display "Part 1: ")
+(solve1 (map (λ (x) (compare (first x) (second x))) input))
+
+(display "Part 2: ")
+(solve2 (split-pairs input))
