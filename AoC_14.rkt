@@ -6,6 +6,7 @@
 ;;;I'll need to generate a map based on the input.
 ;;;Represent it as a set of points. Each point is a list of two numbers '(x y)
 ;;;I'll also need to enumerate a list of all the points between two endpoints.
+;;;Generating the initial state was actually more work than simulating the sand
 #lang racket
 
 (define (read-input file)
@@ -32,6 +33,10 @@
         (argmax first (map (λ (x) (argmax first x)) lst))
         (argmin second (map (λ (x) (argmin second x)) lst))
         (argmax second (map (λ (x) (argmax second x)) lst))))
+
+;;Finds floor level. This is two spaces below the maximum y-value in input
+(define (get-floor-level lst)
+  (+ 1 (get-y (argmax second (map (λ (x) (argmax second x)) lst)))))
 
 ;;Returns a set of points from start to end inclusive
 (define (enumerate-points start end)
@@ -66,10 +71,10 @@
          (map enumerate-path input)))
 
 ;;Returns final resting place of a unit of snad dropped from (500 0)
-;;y value is capped at 200, as that is past the bottom of my input
-(define (sand-endpoint state)
+;;y value is capped at floor
+(define (sand-endpoint state floor)
   (define (iter x y)
-    (cond ((= y 200) (make-point x y))
+    (cond ((= y floor) (make-point x y))
           ((not (set-member? state (make-point x (+ y 1))))
            (iter x (+ y 1)))
           ((not (set-member? state (make-point (- x 1) (+ y 1))))
@@ -80,9 +85,9 @@
   (iter 500 0))
 
 ;;How many sand units fall before one of them stops at a y value of level?
-(define (time-to-fill state level)
+(define (time-to-fill state floor level)
   (define (iter state n)
-    (let ((sand-point (sand-endpoint state)))
+    (let ((sand-point (sand-endpoint state floor)))
       (if (= level (get-y sand-point)) n
           (iter (set-add state sand-point) (+ n 1)))))
   (iter state 0))
@@ -94,5 +99,10 @@
 (define initial-state (enumerate-all-stones input))
 
 (display "Part 1: ")
-(time-to-fill initial-state 200)
-
+(time-to-fill initial-state (get-floor-level input) (get-floor-level input))
+(display "Part 2: ")
+;Parts 1 and 2 are actually asking slightly different things
+;1. How much sand must drop so that the *next* unit lands on the floor
+;2. How much sand must drop so that the *last* unit lands at y=0
+;So add 1 before printing answer
+(+ 1 (time-to-fill initial-state (get-floor-level input) 0))
