@@ -27,12 +27,12 @@
   (second point))
 
 ;;Not sure this is needed, I just wanted to get an idea what size the map is
-;;Gets the 4 points which have the minimum and maximum values for x and y
+;;Gets minimum and maximum x and y values
 (define (get-extents lst)
-  (list (argmin first (map (λ (x) (argmin first x)) lst))
-        (argmax first (map (λ (x) (argmax first x)) lst))
-        (argmin second (map (λ (x) (argmin second x)) lst))
-        (argmax second (map (λ (x) (argmax second x)) lst))))
+  (list (get-x (argmin get-x (map (λ (x) (argmin get-x x)) lst)))
+        (get-x (argmax get-x (map (λ (x) (argmax get-x x)) lst)))
+        (get-y (argmin get-y (map (λ (x) (argmin get-y x)) lst)))
+        (get-y (argmax get-y (map (λ (x) (argmax get-y x)) lst)))))
 
 ;;Finds floor level. This is two spaces below the maximum y-value in input
 (define (get-floor-level lst)
