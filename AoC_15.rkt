@@ -78,7 +78,7 @@
        (count-beacons y sensors))))
 
 ;;Returns the x-coord of any gap that may exist on y, or false
-(define (find-y-gap y sensors)
+(define (find-x-gap y sensors)
   (define (iter xmax ranges)
     (cond ((null? ranges) false)
           ((< xmax (first (first ranges))) (+ xmax 1))
@@ -90,7 +90,7 @@
 ;;Returns a point not within the exclusion zones of any sensor
 (define (find-xy-gap sensors)
   (define (iter y)
-    (let ((gap (find-y-gap y sensors)))
+    (let ((gap (find-x-gap y sensors)))
       (if gap (make-point gap y)
           (iter (+ y 1)))))
   (iter 0))
