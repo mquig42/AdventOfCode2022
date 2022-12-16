@@ -12,6 +12,9 @@
 
 ;;;Update: Made a much faster approach to solving part 1. It went from
 ;;;90 seconds to under 1ms
+
+;;;Have now solved both parts. Part 2 takes 66 seconds. May want to come back
+;;;and use multithreading to reduce that further.
 #lang racket
 
 (define (read-input file)
@@ -73,7 +76,24 @@
   (let ((zones (exclusion-ranges-all y sensors)))
     (- (+ 1 (- (last (last zones)) (first (first zones))))
        (count-beacons y sensors))))
-    
+
+;;Returns the x-coord of any gap that may exist on y, or false
+(define (find-y-gap y sensors)
+  (define (iter xmax ranges)
+    (cond ((null? ranges) false)
+          ((< xmax (first (first ranges))) (+ xmax 1))
+          (else (iter (max xmax (second (first ranges))) (cdr ranges)))))
+  (let ((ranges (exclusion-ranges-all y sensors)))
+    (if (null? ranges) false
+        (iter (second (first ranges)) (cdr ranges)))))
+
+;;Returns a point not within the exclusion zones of any sensor
+(define (find-xy-gap sensors)
+  (define (iter y)
+    (let ((gap (find-y-gap y sensors)))
+      (if gap (make-point gap y)
+          (iter (+ y 1)))))
+  (iter 0))
 
 ;;Counts detected beacons on row
 (define (count-beacons y sensors)
@@ -100,3 +120,9 @@
 
 (display "Part 1: ")
 (excluded-width (second mode) input)
+
+(define gap (find-xy-gap input))
+(display "Gap found at: ")
+gap
+(display "Part 2: ")
+(+ (* (get-x gap) 4000000) (get-y gap))
