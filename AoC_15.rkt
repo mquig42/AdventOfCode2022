@@ -9,6 +9,9 @@
 
 ;;;Currently part 1 is done, but takes several minutes to check a single row
 ;;;Part 2 needs a more efficient approach.
+
+;;;Update: Made a much faster approach to solving part 1. It went from
+;;;90 seconds to under 1ms
 #lang racket
 
 (define (read-input file)
@@ -50,12 +53,27 @@
         ((excluded? point (car sensors)) true)
         (else (excluded-all? point (cdr sensors)))))
 
-;;Finds the number of excluded points on row, between xmin and xmax
-;;Range includes xmin and excludes xmax
-(define (excluded-count xmin xmax y sensors)
-  (count identity
-         (map (λ (x) (excluded-all? (make-point x y) sensors))
-              (range xmin xmax))))
+;;returns the minimum and maximum excluded x values for the given sensor
+;;and y value, or false if the sensor's exclusion zone does not reach that y
+(define (exclusion-range y sensor)
+  (let* ((radius (manhattan-dist (first sensor) (second sensor)))
+         (sensor-x (get-x (first sensor)))
+         (y-dist (manhattan-dist (first sensor) (make-point sensor-x y)))
+         (y-diff (- radius y-dist)))
+    (if (> y-dist radius) false
+        (list (- sensor-x y-diff) (+ sensor-x y-diff)))))
+
+;;Returns a list of the exclusion ranges on y for all sensors
+(define (exclusion-ranges-all y sensors)
+  (sort (filter identity (map (λ (s) (exclusion-range y s)) sensors))
+        (λ (a b) (< (first a) (first b)))))
+
+;;Returns total number of excluded points on y, assuming no gap
+(define (excluded-width y sensors)
+  (let ((zones (exclusion-ranges-all y sensors)))
+    (- (+ 1 (- (last (last zones)) (first (first zones))))
+       (count-beacons y sensors))))
+    
 
 ;;Counts detected beacons on row
 (define (count-beacons y sensors)
@@ -74,11 +92,11 @@
         (iter (cdr sensors) (set-add beacons (second (car sensors))))))
   (iter sensors (set)))
                          
-
-(define input-file (open-input-file "Input15.txt"))
+;(define mode '("Test15.txt" 10)) ;Test
+(define mode '("Input15.txt" 2000000)) ;Prod
+(define input-file (open-input-file (first mode)))
 (define input (read-input input-file))
 (close-input-port input-file)
 
 (display "Part 1: ")
-(- (excluded-count -3600000 8000000 2000000 input)
-   (count-beacons 2000000 input))
+(excluded-width (second mode) input)
