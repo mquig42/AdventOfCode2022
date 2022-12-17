@@ -13,7 +13,14 @@
 ;;;containing the flow rate and all the other valves the exit tunnels lead to
 ;;;In my input, most of the valves have a flow rate of 0, so there's no point
 ;;;opening them. That should constrain the number of available moves.
+
+;;;Here's an idea: generate shorter sequences and prune them
+;;;There are 42,450 possible length-10 sequences, but the optimal answer
+;;;will probably be one of the top thousand (maybe even the top hundred).
+;;;Also, the total sequence length may be 31, since the sequences generated
+;;;by this program include the starting point. Not sure.
 #lang racket
+(require memo)
 
 (define (read-input file)
   (let ((line (read-line file)))
@@ -75,6 +82,31 @@
 (define (find-optimal-seq valves m-rem)
   (argmax score
           (enumerate-all-paths "AA" null valves (count-non-zero valves) m-rem)))
+
+;;Let's try dynamic programming. Return maximum possible score with given
+;;starting conditions
+(define/memoize (max-flow loc valves m-rem acc) #:hash hash
+  (cond ((<= m-rem 0) acc)
+        ((= (count-non-zero valves) 0) acc)
+        (else
+         (let ((max-no-turn
+                (argmax identity
+                        (map (λ (x) (max-flow x valves (- m-rem 1) acc))
+                             (exits valves loc))))
+               (max-turn
+                (if (= (flow-rate valves loc) 0) 0
+                       (argmax
+                        identity
+                        (map
+                         (λ (x) (max-flow
+                                 x
+                                 (turn-valve valves loc)
+                                 (- m-rem 2)
+                                 (+ acc
+                                    (* (flow-rate valves loc) (- m-rem 1)))))
+                         (exits valves loc))))))
+           (max max-turn max-no-turn)))))
+        
 
 (define input-file (open-input-file "Input16.txt"))
 (define input (read-input input-file))
