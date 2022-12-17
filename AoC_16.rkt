@@ -85,21 +85,21 @@
 
 ;;Let's try dynamic programming. Return maximum possible score with given
 ;;starting conditions
-(define/memoize (max-flow loc valves m-rem acc) #:hash hash
-  (cond ((<= m-rem 0) acc)
-        ((= (count-non-zero valves) 0) acc)
+(define/memoize (max-flow loc valves m-rem v-rem acc) #:hash hash
+  (cond ((= m-rem 0) acc)
+        ((= v-rem 0) acc)
         (else
          (let ((max-no-turn
                 (argmax identity
-                        (map (λ (x) (max-flow x valves (- m-rem 1) acc))
+                        (map (λ (x) (max-flow x valves (- m-rem 1) v-rem acc))
                              (exits valves loc))))
                (max-turn
                 (if (= (flow-rate valves loc) 0) 0
                        (max-flow loc (turn-valve valves loc)
                                  (- m-rem 1)
-                                 (+ acc
-                                    (* (flow-rate valves loc)
-                                       (- m-rem 1)))))))
+                                 (- v-rem 1)
+                                 (+ (* (flow-rate valves loc) (- m-rem 1))
+                                    acc)))))
            (max max-turn max-no-turn)))))
         
 
