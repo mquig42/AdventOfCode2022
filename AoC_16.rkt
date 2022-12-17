@@ -3,6 +3,11 @@
 ;;;Mike Quigley
 
 ;;;Optimize a sequence of actions, eh?
+;;;At first, I thought of just looking at the flow rates of all the valves
+;;;I can reach from my current location and moving to the biggest one, but
+;;;the description has an optimal sequence for the sample data that's different.
+;;;This seems similar to day 12 last year. I solved that by enumerating every
+;;;possible path, so I could try that here.
 
 ;;;I decided to read the input as an immutable hash table. Each value is a list
 ;;;containing the flow rate and all the other valves the exit tunnels lead to
@@ -27,6 +32,53 @@
 (define (exits valves valve)
   (cdr (hash-ref valves valve)))
 
-(define input-file (open-input-file "Test16.txt"))
+;;Returns list of all possible moves from current position
+;;This includes all exits, and the flow rate if it isn't 0
+(define (moves valves valve)
+  (filter (λ (x) (not (eq? x 0))) (hash-ref valves valve)))
+
+;;Returns a modified hash table with the given valve set to 0
+;;to simulate it being turned
+(define (turn-valve valves valve)
+  (hash-set valves valve
+            (list-set (hash-ref valves valve) 0 0)))
+
+(define (enumerate-all-paths start path valves v-rem m-rem)
+  (let ((path (cons start path))
+        (valves (if (number? start) (turn-valve valves (car path)) valves))
+        (v-rem (if (number? start) (- v-rem 1) v-rem))
+        (m-rem (- m-rem 1))
+        (start (if (number? start) (car path) start)))
+    (if (or (= v-rem 0) (= m-rem 0)) (list (reverse path))
+        (foldl (λ (x acc)
+                 (append acc (enumerate-all-paths x path valves v-rem m-rem)))
+               null
+               (moves valves start)))))
+
+;;Calculates the total pressure released by a given sequence of moves
+;;Sequence can be less than 30 moves, if it's possible to open every valve
+;;faster than that (it is for the test input)
+(define (score seq)
+  (define (iter seq acc mins)
+    (cond ((null? seq) acc)
+          ((number? (car seq))
+           (iter (cdr seq) (+ acc (* mins (car seq))) (- mins 1)))
+          (else
+           (iter (cdr seq) acc (- mins 1)))))
+  (iter seq 0 30))
+
+;;Returns number of valves with a non-zero flow rate
+(define (count-non-zero valves)
+  (length (filter (λ (x) (not (= 0 (car x)))) (hash-values valves))))
+
+;;Finds optimal sequence of given length
+(define (find-optimal-seq valves m-rem)
+  (argmax score
+          (enumerate-all-paths "AA" null valves (count-non-zero valves) m-rem)))
+
+(define input-file (open-input-file "Input16.txt"))
 (define input (read-input input-file))
 (close-input-port input-file)
+
+;optimal sequence for sample input
+(define optimal-sample '("AA" "DD" 20 "CC" "BB" 13 "AA" "II" "JJ" 21 "II" "AA" "DD" "EE" "FF" "GG" "HH" 22 "GG" "FF" "EE" 3 "DD" "CC" 2))
