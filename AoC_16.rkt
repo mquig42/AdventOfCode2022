@@ -95,20 +95,15 @@
                              (exits valves loc))))
                (max-turn
                 (if (= (flow-rate valves loc) 0) 0
-                       (argmax
-                        identity
-                        (map
-                         (λ (x) (max-flow
-                                 x
-                                 (turn-valve valves loc)
-                                 (- m-rem 2)
+                       (max-flow loc (turn-valve valves loc)
+                                 (- m-rem 1)
                                  (+ acc
-                                    (* (flow-rate valves loc) (- m-rem 1)))))
-                         (exits valves loc))))))
+                                    (* (flow-rate valves loc)
+                                       (- m-rem 1)))))))
            (max max-turn max-no-turn)))))
         
 
-(define input-file (open-input-file "Input16.txt"))
+(define input-file (open-input-file "Test16.txt"))
 (define input (read-input input-file))
 (close-input-port input-file)
 
