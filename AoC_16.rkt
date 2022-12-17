@@ -85,22 +85,27 @@
 
 ;;Let's try dynamic programming. Return maximum possible score with given
 ;;starting conditions
-(define/memoize (max-flow loc valves m-rem v-rem acc) #:hash hash
+(define/memoize (max-flow state) #:hash hash
+  (let ((loc (first state))
+        (valves (second state))
+        (m-rem (third state))
+        (v-rem (fourth state))
+        (acc (fifth state)))
   (cond ((= m-rem 0) acc)
         ((= v-rem 0) acc)
         (else
          (let ((max-no-turn
                 (argmax identity
-                        (map (λ (x) (max-flow x valves (- m-rem 1) v-rem acc))
+                        (map (λ (x) (max-flow (list x valves (- m-rem 1) v-rem acc)))
                              (exits valves loc))))
                (max-turn
                 (if (= (flow-rate valves loc) 0) 0
-                       (max-flow loc (turn-valve valves loc)
+                       (max-flow (list loc (turn-valve valves loc)
                                  (- m-rem 1)
                                  (- v-rem 1)
                                  (+ (* (flow-rate valves loc) (- m-rem 1))
-                                    acc)))))
-           (max max-turn max-no-turn)))))
+                                    acc))))))
+           (max max-turn max-no-turn))))))
         
 
 (define input-file (open-input-file "Test16.txt"))
