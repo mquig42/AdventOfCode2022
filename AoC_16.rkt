@@ -19,6 +19,10 @@
 ;;;will probably be one of the top thousand (maybe even the top hundred).
 ;;;Also, the total sequence length may be 31, since the sequences generated
 ;;;by this program include the starting point. Not sure.
+
+;;;I just spent quite a lot of time on dynamic programming, which worked on
+;;;the sample but is too slow for the full input. Maybe that pruning idea
+;;;will work better.
 #lang racket
 (require memo)
 
@@ -108,7 +112,7 @@
            (max max-turn max-no-turn))))))
         
 
-(define input-file (open-input-file "Test16.txt"))
+(define input-file (open-input-file "Input16.txt"))
 (define input (read-input input-file))
 (close-input-port input-file)
 
