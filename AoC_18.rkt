@@ -10,6 +10,8 @@
 ;;;The good news is that this is a fairly small object. Every coordinate
 ;;;value is between 0 and 19. Total volume of that space is only 8000.
 ;;;Some sort of flood-fill approach might work.
+;;;Update: Implemented a flood fill. Combined with standard set operations,
+;;;this solves part 2 easily.
 #lang racket
 
 (define (read-input file)
