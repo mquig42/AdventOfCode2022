@@ -23,6 +23,12 @@
 ;;;I just spent quite a lot of time on dynamic programming, which worked on
 ;;;the sample but is too slow for the full input. Maybe that pruning idea
 ;;;will work better.
+
+;;;Another update: I tried adding a simple enhancement to my DP solution.
+;;;Assume that large valves are opened early. If, after 10 minutes, I haven't
+;;;opened enough valves to release 1000 units of pressure over the remaining
+;;;time, then assume the solution is suboptimal and return 0
+;;;This solves part 1 in under 2 seconds.
 #lang racket
 (require memo)
 
@@ -43,49 +49,15 @@
 (define (exits valves valve)
   (cdr (hash-ref valves valve)))
 
-;;Returns list of all possible moves from current position
-;;This includes all exits, and the flow rate if it isn't 0
-(define (moves valves valve)
-  (filter (λ (x) (not (eq? x 0))) (hash-ref valves valve)))
-
 ;;Returns a modified hash table with the given valve set to 0
 ;;to simulate it being turned
 (define (turn-valve valves valve)
   (hash-set valves valve
             (list-set (hash-ref valves valve) 0 0)))
 
-(define (enumerate-all-paths start path valves v-rem m-rem)
-  (let ((path (cons start path))
-        (valves (if (number? start) (turn-valve valves (car path)) valves))
-        (v-rem (if (number? start) (- v-rem 1) v-rem))
-        (m-rem (- m-rem 1))
-        (start (if (number? start) (car path) start)))
-    (if (or (= v-rem 0) (= m-rem 0)) (list (reverse path))
-        (foldl (λ (x acc)
-                 (append acc (enumerate-all-paths x path valves v-rem m-rem)))
-               null
-               (moves valves start)))))
-
-;;Calculates the total pressure released by a given sequence of moves
-;;Sequence can be less than 30 moves, if it's possible to open every valve
-;;faster than that (it is for the test input)
-(define (score seq)
-  (define (iter seq acc mins)
-    (cond ((null? seq) acc)
-          ((number? (car seq))
-           (iter (cdr seq) (+ acc (* mins (car seq))) (- mins 1)))
-          (else
-           (iter (cdr seq) acc (- mins 1)))))
-  (iter seq 0 30))
-
 ;;Returns number of valves with a non-zero flow rate
 (define (count-non-zero valves)
   (length (filter (λ (x) (not (= 0 (car x)))) (hash-values valves))))
-
-;;Finds optimal sequence of given length
-(define (find-optimal-seq valves m-rem)
-  (argmax score
-          (enumerate-all-paths "AA" null valves (count-non-zero valves) m-rem)))
 
 ;;Let's try dynamic programming. Return maximum possible score with given
 ;;starting conditions
@@ -97,10 +69,12 @@
         (acc (fifth state)))
   (cond ((= m-rem 0) acc)
         ((= v-rem 0) acc)
+        ((and (< m-rem 20) (< acc 1000)) 0)
         (else
          (let ((max-no-turn
                 (argmax identity
-                        (map (λ (x) (max-flow (list x valves (- m-rem 1) v-rem acc)))
+                        (map (λ (x)
+                               (max-flow (list x valves (- m-rem 1) v-rem acc)))
                              (exits valves loc))))
                (max-turn
                 (if (= (flow-rate valves loc) 0) 0
@@ -116,5 +90,5 @@
 (define input (read-input input-file))
 (close-input-port input-file)
 
-;optimal sequence for sample input
-(define optimal-sample '("AA" "DD" 20 "CC" "BB" 13 "AA" "II" "JJ" 21 "II" "AA" "DD" "EE" "FF" "GG" "HH" 22 "GG" "FF" "EE" 3 "DD" "CC" 2))
+(display "Part 1: ")
+(max-flow (list "AA" input 30 (count-non-zero input) 0))
