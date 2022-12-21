@@ -24,8 +24,12 @@
 ;;;Blueprint 14 can open 4 geodes
 ;;;and do the rest of the work by hand. This means I don't need to test
 ;;;every blueprint in a single run.
+
+;;;Update: optimized my program, now it can solve part 1 in seconds and part 2
+;;;in about 10 minutes. I kept the output format, just to be different from
+;;;my other programs. I also got rid of memoization, since it wasn't actually
+;;;helping anything.
 #lang racket
-(require memo)
 
 (define (read-input file)
   (let ((line (read-line file)))
@@ -49,6 +53,17 @@
 (define geode-ore sixth)
 (define geode-obsidian seventh)
 
+;;Getters for state
+(define ore-robots first)
+(define clay-robots second)
+(define obsidian-robots third)
+(define ore fourth)
+(define clay fifth)
+(define obsidian sixth)
+(define geodes seventh)
+(define m-rem eighth)
+(define blueprint ninth)
+
 ;;Maximum required production of each material. Can only build one robot
 ;;per minute, so no point having more resource production than the most
 ;;expensive robot
@@ -60,105 +75,127 @@
 (define max-clay obsidian-clay)
 (define max-obsidian geode-obsidian)
 
-;;Test if it's impossible to build each robot type
-(define (ore? blueprint ore)
-  (< ore (ore-ore blueprint)))
-(define (clay? blueprint ore)
-  (< ore (clay-ore blueprint)))
-(define (obsidian? blueprint ore clay)
-  (or (< ore (obsidian-ore blueprint))
-      (< clay (obsidian-clay blueprint))))
-(define (geode? blueprint ore obsidian)
-  (or (< ore (geode-ore blueprint))
-      (< obsidian (geode-obsidian blueprint))))
+;;Finds the maximum number of geodes that can be opened from given state
+;;Memoize has been removed. States don't repeat,
+;;so it was only slowing things down
+(define (max-geodes state)
+  (cond ((<= (m-rem state) 0) (geodes state))
+        (else
+         (max (max-geodes (build-ore state))
+              (max-geodes (build-clay state))
+              (max-geodes (build-obsidian state))
+              (max-geodes (build-geode state))))))
 
-(define/memoize (max-geodes state) #:hash hash
-  (let* ((ore-robots (first state))
-         (clay-robots (second state))
-         (obsidian-robots (third state))
-         (ore (fourth state))
-         (clay (fifth state))
-         (obsidian (sixth state))
-         (geodes (seventh state))
-         (m-rem (eighth state))
-         (blueprint (ninth state))
-         (ore-next (+ ore ore-robots))
-         (clay-next (+ clay clay-robots))
-         (obsidian-next (+ obsidian obsidian-robots))
-         (time-next (- m-rem 1)))
-    (cond ((= m-rem 0) geodes)
-          (else
-           (max (max-geodes (list ore-robots ;;Don't build any robots
-                                  clay-robots
-                                  obsidian-robots
-                                  ore-next
-                                  clay-next
-                                  obsidian-next
-                                  geodes
-                                  time-next
-                                  blueprint))
-                (if (or (ore? blueprint ore)
-                        (>= ore-robots (max-ore blueprint)))
-                    0
-                    (max-geodes (list (+ ore-robots 1) ;;Build ore robot
-                                      clay-robots
-                                      obsidian-robots
-                                      (- ore-next (ore-ore blueprint))
-                                      clay-next
-                                      obsidian-next
-                                      geodes
-                                      time-next
-                                      blueprint)))
-                (if (or (clay? blueprint ore)
-                        (>= clay-robots (max-clay blueprint)))
-                    0
-                    (max-geodes (list ore-robots ;;Build clay robot
-                                      (+ clay-robots 1)
-                                      obsidian-robots
-                                      (- ore-next (clay-ore blueprint))
-                                      clay-next
-                                      obsidian-next
-                                      geodes
-                                      time-next
-                                      blueprint)))
-                (if (or (obsidian? blueprint ore clay)
-                        (>= obsidian-robots (max-obsidian blueprint)))
-                    0
-                    (max-geodes (list ore-robots ;;Build obsidian robot
-                                      clay-robots
-                                      (+ obsidian-robots 1)
-                                      (- ore-next (obsidian-ore blueprint))
-                                      (- clay-next (obsidian-clay blueprint))
-                                      obsidian-next
-                                      geodes
-                                      time-next
-                                      blueprint)))
-                (if (geode? blueprint ore obsidian)
-                    0
-                    (max-geodes (list ore-robots ;;Build geode robot
-                                      clay-robots
-                                      obsidian-robots
-                                      (- ore-next (geode-ore blueprint))
-                                      clay-next
-                                      (- obsidian-next
-                                         (geode-obsidian blueprint))
-                                      (+ geodes time-next)
-                                      time-next
-                                      blueprint))))))))
-                           
-(define (start-state blueprint)
-  (list 1 0 0 0 0 0 0 24 blueprint))
+;;Returns state after building an ore robot.
+;;If the number of ore bots is already at maximum, returns a zero state
+(define (build-ore state)
+  (cond ((>= (ore-robots state) (max-ore (blueprint state))) zero-state)
+        (else
+         (let ((t (max 1 (+ 1 (ceiling
+                               (/ (- (ore-ore (blueprint state)) (ore state))
+                                  (ore-robots state)))))))
+           (list (+ 1 (ore-robots state))
+                 (clay-robots state)
+                 (obsidian-robots state)
+                 (- (+ (ore state) (* t (ore-robots state)))
+                    (ore-ore (blueprint state)))
+                 (+ (clay state) (* t (clay-robots state)))
+                 (+ (obsidian state) (* t (obsidian-robots state)))
+                 (geodes state)
+                 (- (m-rem state) t)
+                 (blueprint state))))))
 
-(define (print-result blueprint)
+;;Returns state after building a clay robot.
+;;If the number of clay bots is already at maximum, returns a zero state
+(define (build-clay state)
+  (cond ((>= (clay-robots state) (max-clay (blueprint state))) zero-state)
+        (else
+         (let ((t (max 1 (+ 1 (ceiling
+                               (/ (- (clay-ore (blueprint state)) (ore state))
+                                  (ore-robots state)))))))
+           (list (ore-robots state)
+                 (+ 1 (clay-robots state))
+                 (obsidian-robots state)
+                 (- (+ (ore state) (* t (ore-robots state)))
+                    (clay-ore (blueprint state)))
+                 (+ (clay state) (* t (clay-robots state)))
+                 (+ (obsidian state) (* t (obsidian-robots state)))
+                 (geodes state)
+                 (- (m-rem state) t)
+                 (blueprint state))))))
+
+;;Returns state after building an obsidian robot.
+;;If the number of obsidian bots is already at maximum, or there are no clay
+;;bots, returns a zero state
+(define (build-obsidian state)
+  (cond ((= (clay-robots state) 0) zero-state)
+        ((>= (obsidian-robots state) (max-obsidian (blueprint state)))
+         zero-state)
+        (else
+         (let ((t (max 1
+                       (+ 1 (ceiling
+                             (/ (- (obsidian-ore (blueprint state)) (ore state))
+                                (ore-robots state))))
+                       (+ 1 (ceiling
+                             (/ (- (obsidian-clay (blueprint state))
+                                   (clay state))
+                                (clay-robots state)))))))
+           (list (ore-robots state)
+                 (clay-robots state)
+                 (+ 1 (obsidian-robots state))
+                 (- (+ (ore state) (* t (ore-robots state)))
+                    (obsidian-ore (blueprint state)))
+                 (- (+ (clay state) (* t (clay-robots state)))
+                    (obsidian-clay (blueprint state)))
+                 (+ (obsidian state) (* t (obsidian-robots state)))
+                 (geodes state)
+                 (- (m-rem state) t)
+                 (blueprint state))))))
+
+;;Returns state after building an obsidian robot.
+;;If there are no obsidian bots, return a zero state
+(define (build-geode state)
+  (cond ((= (obsidian-robots state) 0) zero-state)
+        (else
+         (let ((t (max 1
+                       (+ 1 (ceiling
+                             (/ (- (geode-ore (blueprint state)) (ore state))
+                                (ore-robots state))))
+                       (+ 1 (ceiling
+                             (/ (- (geode-obsidian (blueprint state))
+                                   (obsidian state))
+                                (obsidian-robots state)))))))
+           (list (ore-robots state)
+                 (clay-robots state)
+                 (obsidian-robots state)
+                 (- (+ (ore state) (* t (ore-robots state)))
+                    (geode-ore (blueprint state)))
+                 (+ (clay state) (* t (clay-robots state)))
+                 (- (+ (obsidian state) (* t (obsidian-robots state)))
+                    (geode-obsidian (blueprint state)))
+                 (+ (geodes state) (- (m-rem state) t))
+                 (- (m-rem state) t)
+                 (blueprint state))))))
+
+;;Returns a starting state with the given time and blueprint
+(define (start-state minutes blueprint)
+  (list 1 0 0 0 0 0 0 minutes blueprint))
+
+;;This state evaluates to 0
+(define zero-state (list 0 0 0 0 0 0 0 0 (list 99 99 99 99 99 99 99)))
+
+;;Evaluates all blueprints with a 24-minute time span for part 1
+(define (print-result minutes blueprint)
   (printf "Blueprint ~a can open ~a geodes~n"
           (blueprint-num blueprint)
-          (max-geodes (start-state blueprint)))
-  (set-box! (max-geodes) (hash))
-  (collect-garbage))
+          (max-geodes (start-state minutes blueprint))))
 
 (define input-file (open-input-file "Input19.txt"))
 (define input (read-input input-file))
 (close-input-port input-file)
 
 (display "Part 1:\r")
-(for-each print-result (take input 10))
+(for-each (λ (x) (print-result 24 x)) input)
+(display "\rPart 2:\r")
+(for-each (λ (x) (print-result 32 x)) (take input 3))
+
