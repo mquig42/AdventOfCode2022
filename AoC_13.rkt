@@ -59,7 +59,7 @@
 (close-input-port input-file)
 
 (display "Part 1: ")
-(foldl + 0 (map (λ (a b) (* a b))
+(foldl + 0 (map *
                 (map (λ (x) (compare (first x) (second x))) input)
                 (range 1 (+ (length input) 1))))
 
