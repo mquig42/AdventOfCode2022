@@ -57,6 +57,10 @@
                  (eval-tree tree (second monkey-val) humn-value)
                  (eval-tree tree (third monkey-val) humn-value))))))
 
+;;These next two functions are also not used. I wanted to find out how many
+;;monkeys depend on what value humn has. In my input, it's only 70.
+;;Still too many to trace through the whole chain.
+
 ;;Does the given monkey's value depend on humn?
 (define (depends-humn? tree monkey)
   (let ((monkey-val (hash-ref tree monkey)))
@@ -77,18 +81,23 @@
 
 (define input (file->lines "Input21.txt"))
 (define monkey-tree (make-expression-tree input))
-(define simplified-tree-1 (simplify-1 monkey-tree 
-                                      (hash-ref monkey-tree "humn")))
-;Applying simplify-1 reduces the number of active monkeys from 1147 to 70
 
 (display "Part 1: ")
 (eval-tree monkey-tree "root" (hash-ref monkey-tree "humn"))
 
 (display "Part 2: ")
+;Redefine root to subtract. That way, if the two numbers are equal, it gives 0
 (define monkeys2
   (hash-set monkey-tree
             "root"
             (list-set (hash-ref monkey-tree "root") 0 -)))
-;Set root to use -. That way, if the two params are equal, it will evaluate
-;to 0. At this point, I just called eval-tree a bunch of times with different
-;humn-values until I found one that got me a 0.
+
+;Try algebra now. y = m*x + b, if y = 0, then x = -b/m
+;I assume the function is linear, because only the four basic functions are used
+;It's possible that they combine in a way that produces an exponent or something
+;for example, a monkey could have a value of humn * humn
+;but it's easy to evaluate the number this outputs to see if it actually gives 0
+;which it does, so my assumption was correct
+(define y-int (eval-tree monkeys2 "root" 0))
+(define slope (/ (- (eval-tree monkeys2 "root" 892) y-int) 892))
+(* -1 (/ y-int slope))
