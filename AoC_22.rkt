@@ -17,6 +17,10 @@
 ;;;S = (1 . 0)
 ;;;W = (0 . -1)
 ;;;N = (-1 . 0)
+
+;;;For part 2, the wrapping rules are different. Need to figure out how to
+;;;turn my input into a cube. Also, the sample and full inputs are different
+;;;shapes, so if I want to work with both I need a general solution for folding
 #lang racket
 
 ;;Reads one row of input
@@ -43,6 +47,14 @@
                       (first parsed-row)
                       (second parsed-row))))))
 
+;;Getters for board.
+;;Is the given coord an open tile?
+(define (tile? board coord)
+  (set-member? (first board) coord))
+;;Is the given coord a wall?
+(define (wall? board coord)
+  (set-member? (second board) coord))
+
 ;;Coord get/set
 (define (make-coord row col)
   (cons row col))
@@ -65,7 +77,50 @@
 (define (u-turn face)
   (make-coord (* (get-row face) -1) (* (get-col face) -1)))
 
-(define input-file (open-input-file "Test22.txt"))
+(define (find-start-pos board)
+  (define (iter pos)
+    (if (or (tile? board pos) (wall? board pos)) pos
+        (iter (add-coords pos '(0 . 1)))))
+  (iter (make-coord 1 1)))
+
+;;Gets next coord in given direction. Wraps on edges.
+(define (next-pos-1 board pos face)
+  (define (to-edge pos face)
+    (let ((ahead (add-coords pos face)))
+      (if (or (tile? board ahead) (wall? board ahead))
+          (to-edge ahead face)
+          (list pos (u-turn face)))))
+  (let ((ahead (add-coords pos face)))
+    (if (or (tile? board ahead) (wall? board ahead))
+        (list ahead face)
+        (to-edge pos (u-turn face)))))
+
+;;Move n spaces in facing direction
+(define (move next-pos n board pos face)
+  (let ((ahead (next-pos board pos face)))
+    (if (or (= n 0) (wall? board (first ahead))) (list pos (second ahead))
+        (move next-pos (- n 1) board (first ahead) (second ahead)))))
+
+;;Gets position and heading after all moves
+(define (move-seq next-pos lst board pos face)
+  (cond ((null? lst) (list pos face))
+        ((number? (car lst))
+         (let ((ahead (move next-pos (car lst) board pos face)))
+           (move-seq next-pos (cdr lst) board (first ahead) (second ahead))))
+        (else
+         (move-seq next-pos (cdr lst) board pos (turn face (car lst))))))
+
+;;Prints ending position and resulting password
+(define (print-result end-state)
+  (printf "Final position: ~a Heading: ~a\r"
+          (first end-state)
+          (index-of faces (second end-state)))
+  (display "Password: ")
+  (+ (* 1000 (get-row (first end-state)))
+     (* 4 (get-col (first end-state)))
+     (index-of faces (second end-state))))
+
+(define input-file (open-input-file "Input22.txt"))
 (define board (read-board input-file 1 (set) (set)))
 (define instrs (map (λ (x) (if (string->number x)
                                (string->number x)
@@ -73,4 +128,8 @@
                     (regexp-match* #px"\\d+|\\D"
                                    (string-trim (read-line input-file)))))
 (close-input-port input-file)
+
+(display "Part 1:\r")
+(print-result
+ (move-seq next-pos-1 instrs board (find-start-pos board) '(0 . 1)))
 
