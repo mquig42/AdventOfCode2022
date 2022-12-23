@@ -1,0 +1,44 @@
+Just going to hard-code part 2
+
+Edges:
+1 Left: Left side of 4, moving right. Top of 1 = bottom of 4
+1 Top: Left side of 6, moving right. Left of 1 = top of 6
+1 Right: no wrap
+1 Bottom: no wrap
+2 Left: no wrap
+2 Top: Bottom of 6, moving up. Left of 2 = left of 6
+2 Right: Right of 5, moving left. Top of 2 = bottom of 5
+2 Bottom: Right of 3, moving left. Left of 2 = top of 3
+3 Left: Top of 4 moving down. Top of 3 = Left of 4
+3 Top: No wrap
+3 Right: Bottom of 2 moving up. Top of 3 = left of 2
+3 Bottom: No wrap
+4 Left: Left of 1 moving right. Top of 4 = bottom of 1
+4 Top: Left of 3 moving right. Left of 4 = top of 3
+4 Right: No wrap
+4 Bottom: no wrap
+5 Left: no wrap
+5 Top no wrap
+5 Right: Right of 2 moving left. Top of 5 = bottom of 2
+5 Bottom: Right of 6 moving left. Left of 5 = top of 6
+6 Left: top of 1 moving down. Top of 6 = left of 1
+6 Top: no wrap
+6 Right: Bottom of 5 moving up. Top of 6 = left of 5
+6 Bottom: Top of 2 moving down. Left of 6 = Left of 2
+
+To put things on more precise terms:
+If the next space is on the board, continue normally. If it isn't:
+1L: If col = 51 and row < 51: New column 1, new row 151 - old row, new direction right
+1T: If col < 101 and row = 1: New column 1, new row 100 + old col, new direction right
+2T: If row = 1: new column is old column - 100, new row 200, direction unchanged (up)
+2R: If col = 150, new column is 100, new row is 151 - old row, new direction left
+2B: if row = 50, new column is 100, new row is old col - 50, new direction left
+3L: if col = 51, new column is old row - 50, new row is 101, new direction is down
+3R: If col = 100 and row < 101, new col is old row + 50, new row is 50, new direction up
+4L: If col = 1 and row < 151, new col 51, new row 151 - old row, new direction right
+4T: If row = 101, new col 51, new row 50 + old col, new direction right
+5R: If col = 100, new col 150, new row 151 - old row, new direction left
+5B: If row = 150, new col 50, new row is old col + 100, new direction left
+6L: If col = 1, new col is old row - 100, new row 1, new direction down
+6R: If col = 50, new col is old row - 100, new row is 150, new direction up
+6B: If row = 200, new col is old col + 100, new row is 1, direction unchanged (down)

@@ -95,11 +95,47 @@
         (list ahead face)
         (to-edge pos (u-turn face)))))
 
+;;Gets next coord in given direction. Cube-wraps on edges.
+;;Tailored for puzzle input. Not general, won't work on sample.
+(define (next-pos-2 board pos face)
+  (let ((ahead (add-coords pos face)))
+    (cond ((or (tile? board ahead) (wall? board ahead)) (list ahead face))
+          ((and (= (get-col pos) 51) (< (get-row pos) 51)) ;1L
+           (list (make-coord (- 151 (get-row pos)) 1) '(0 . 1)))
+          ((and (< (get-col pos) 101) (= (get-row pos) 1)) ;1T
+           (list (make-coord (+ (get-col pos) 100) 1) '(0 . 1)))
+          ((= (get-row pos) 1) ;2T
+           (list (make-coord 200 (- (get-col pos) 100)) face))
+          ((= (get-col pos) 150) ;2R
+           (list (make-coord (- 151 (get-row pos)) 100) '(0 . -1)))
+          ((= (get-row pos) 50) ;2B
+           (list (make-coord (- (get-col pos) 50) 100) '(0 . -1)))
+          ((= (get-col pos) 51) ;3L
+           (list (make-coord 101 (- (get-row pos) 50)) '(1 . 0)))
+          ((and (= (get-col pos) 100) (< (get-row pos) 101)) ;3R
+           (list (make-coord 50 (+ (get-row pos) 50)) '(-1 . 0)))
+          ((and (= (get-col pos) 1) (< (get-row pos) 151)) ;4L
+           (list (make-coord (- 151 (get-row pos)) 51) '(0 . 1)))
+          ((= (get-row pos) 101) ;4T
+           (list (make-coord (+ (get-col pos) 50) 51) '(0 . 1)))
+          ((= (get-col pos) 100) ;5R
+           (list (make-coord (- 151 (get-row pos)) 150) '(0 . -1)))
+          ((= (get-row pos) 150) ;5B
+           (list (make-coord (+ (get-col pos) 100) 50) '(0 . -1)))
+          ((= (get-col pos) 1) ;6L
+           (list (make-coord 1 (- (get-row pos) 100)) '(1 . 0)))
+          ((= (get-col pos) 50) ;6R
+           (list (make-coord 150 (- (get-row pos) 100)) '(-1 . 0)))
+          ((= (get-row pos) 200) ;6B
+           (list (make-coord 1 (+ (get-col pos) 100)) face))
+          (else (display "You are a dumbus")))))
+
 ;;Move n spaces in facing direction
 (define (move next-pos n board pos face)
   (let ((ahead (next-pos board pos face)))
-    (if (or (= n 0) (wall? board (first ahead))) (list pos (second ahead))
-        (move next-pos (- n 1) board (first ahead) (second ahead)))))
+    (cond ((= n 0) (list pos (second ahead)))
+          ((wall? board (first ahead)) (list pos face))
+          (else (move next-pos (- n 1) board (first ahead) (second ahead))))))
 
 ;;Gets position and heading after all moves
 (define (move-seq next-pos lst board pos face)
@@ -133,3 +169,6 @@
 (print-result
  (move-seq next-pos-1 instrs board (find-start-pos board) '(0 . 1)))
 
+(display "Part 2:\r")
+(print-result
+ (move-seq next-pos-2 instrs board (find-start-pos board) '(0 . 1)))
