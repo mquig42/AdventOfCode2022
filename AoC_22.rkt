@@ -21,6 +21,10 @@
 ;;;For part 2, the wrapping rules are different. Need to figure out how to
 ;;;turn my input into a cube. Also, the sample and full inputs are different
 ;;;shapes, so if I want to work with both I need a general solution for folding
+
+;;;Update: Hard-coded the rules for cube wrapping. I verified all of them
+;;;several times, but the program still produces the wrong answer. No idea where
+;;;I went wrong. It works for part 1.
 #lang racket
 
 ;;Reads one row of input
@@ -105,7 +109,7 @@
           ((and (< (get-col pos) 101) (= (get-row pos) 1)) ;1T
            (list (make-coord (+ (get-col pos) 100) 1) '(0 . 1)))
           ((= (get-row pos) 1) ;2T
-           (list (make-coord 200 (- (get-col pos) 100)) face))
+           (list (make-coord 200 (- (get-col pos) 100)) '(-1 . 0)))
           ((= (get-col pos) 150) ;2R
            (list (make-coord (- 151 (get-row pos)) 100) '(0 . -1)))
           ((= (get-row pos) 50) ;2B
@@ -127,13 +131,13 @@
           ((= (get-col pos) 50) ;6R
            (list (make-coord 150 (- (get-row pos) 100)) '(-1 . 0)))
           ((= (get-row pos) 200) ;6B
-           (list (make-coord 1 (+ (get-col pos) 100)) face))
+           (list (make-coord 1 (+ (get-col pos) 100)) '(1 . 0)))
           (else (display "You are a dumbus")))))
 
 ;;Move n spaces in facing direction
 (define (move next-pos n board pos face)
   (let ((ahead (next-pos board pos face)))
-    (cond ((= n 0) (list pos (second ahead)))
+    (cond ((= n 0) (list pos face))
           ((wall? board (first ahead)) (list pos face))
           (else (move next-pos (- n 1) board (first ahead) (second ahead))))))
 
