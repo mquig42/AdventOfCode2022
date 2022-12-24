@@ -22,9 +22,22 @@
 ;;;turn my input into a cube. Also, the sample and full inputs are different
 ;;;shapes, so if I want to work with both I need a general solution for folding
 
+;;;Cube Diagram (Face numbers)
+;;; 12
+;;; 3
+;;;45
+;;;6
+
 ;;;Update: Hard-coded the rules for cube wrapping. I verified all of them
 ;;;several times, but the program still produces the wrong answer. No idea where
 ;;;I went wrong. It works for part 1.
+;;;Update: It was the conditions for cube face transitions.
+;;;I assumed that, if the row number is 101, you must be moving upwards
+;;;from face 4. Row 101 also includes face 5, but if you're moving up from 5
+;;;you just go straight to 3 without triggering the face transition logic.
+;;;On the other hand, you could be on row 101 on face 5, moving right not up.
+;;;To fix, just make every condition include enough information to uniquely
+;;;identify an edge and direction instead of trying to shorted them.
 #lang racket
 
 ;;Reads one row of input
@@ -104,35 +117,60 @@
 (define (next-pos-2 board pos face)
   (let ((ahead (add-coords pos face)))
     (cond ((or (tile? board ahead) (wall? board ahead)) (list ahead face))
-          ((and (= (get-col pos) 51) (< (get-row pos) 51)) ;1L
+          ((and (= (get-col pos) 51)
+                (< (get-row pos) 51)
+                (equal? face '(0 . -1))) ;1L
            (list (make-coord (- 151 (get-row pos)) 1) '(0 . 1)))
-          ((and (< (get-col pos) 101) (= (get-row pos) 1)) ;1T
+          ((and (< (get-col pos) 101)
+                (= (get-row pos) 1)
+                (equal? face '(-1 . 0))) ;1T
            (list (make-coord (+ (get-col pos) 100) 1) '(0 . 1)))
-          ((= (get-row pos) 1) ;2T
+          ((and (> (get-col pos) 100)
+                (= (get-row pos) 1)
+                (equal? face '(-1 . 0))) ;2T
            (list (make-coord 200 (- (get-col pos) 100)) '(-1 . 0)))
-          ((= (get-col pos) 150) ;2R
+          ((and (= (get-col pos) 150)
+                (equal? face '(0 . 1))) ;2R
            (list (make-coord (- 151 (get-row pos)) 100) '(0 . -1)))
-          ((= (get-row pos) 50) ;2B
+          ((and (> (get-col pos) 100)
+                (= (get-row pos) 50)
+                (equal? face '(1 . 0))) ;2B
            (list (make-coord (- (get-col pos) 50) 100) '(0 . -1)))
-          ((= (get-col pos) 51) ;3L
+          ((and (> (get-row pos) 50)
+                (< (get-row pos) 101)
+                (= (get-col pos) 51)
+                (equal? face '(0 . -1))) ;3L
            (list (make-coord 101 (- (get-row pos) 50)) '(1 . 0)))
-          ((and (= (get-col pos) 100) (< (get-row pos) 101)) ;3R
+          ((and (= (get-col pos) 100)
+                (> (get-row pos) 50)
+                (< (get-row pos) 101)
+                (equal? face '(0 . 1))) ;3R
            (list (make-coord 50 (+ (get-row pos) 50)) '(-1 . 0)))
-          ((and (= (get-col pos) 1) (< (get-row pos) 151)) ;4L
+          ((and (= (get-col pos) 1)
+                (< (get-row pos) 151)
+                (equal? face '(0 . -1))) ;4L
            (list (make-coord (- 151 (get-row pos)) 51) '(0 . 1)))
-          ((= (get-row pos) 101) ;4T
+          ((and (< (get-col pos) 51)
+                (= (get-row pos) 101)
+                (equal? face '(-1 . 0))) ;4T
            (list (make-coord (+ (get-col pos) 50) 51) '(0 . 1)))
-          ((= (get-col pos) 100) ;5R
+          ((and (= (get-col pos) 100)
+                (> (get-row pos) 100)
+                (equal? face '(0 . 1))) ;5R
            (list (make-coord (- 151 (get-row pos)) 150) '(0 . -1)))
-          ((= (get-row pos) 150) ;5B
+          ((and (> (get-col pos) 50)
+                (= (get-row pos) 150)
+                (equal? face '(1 . 0))) ;5B
            (list (make-coord (+ (get-col pos) 100) 50) '(0 . -1)))
-          ((= (get-col pos) 1) ;6L
+          ((and (= (get-col pos) 1)
+                (equal? face '(0 . -1))) ;6L
            (list (make-coord 1 (- (get-row pos) 100)) '(1 . 0)))
-          ((= (get-col pos) 50) ;6R
+          ((and (= (get-col pos) 50)
+                (equal? face '(0 . 1))) ;6R
            (list (make-coord 150 (- (get-row pos) 100)) '(-1 . 0)))
-          ((= (get-row pos) 200) ;6B
-           (list (make-coord 1 (+ (get-col pos) 100)) '(1 . 0)))
-          (else (display "You are a dumbus")))))
+          ((and (= (get-row pos) 200)
+                (equal? face '(1 . 0))) ;6B
+           (list (make-coord 1 (+ (get-col pos) 100)) '(1 . 0))))))
 
 ;;Move n spaces in facing direction
 (define (move next-pos n board pos face)
