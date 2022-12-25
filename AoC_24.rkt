@@ -8,6 +8,8 @@
 
 ;;;Update: tried to use a linked list as a queue. This produces the correct
 ;;;answer on the sample input, but is slow.
+;;;Update: It's not just slow, it runs out of memory. I need a smaller way
+;;;of representing state instead of storing the position of every storm
 #lang racket
 
 ;;Read one row of input
@@ -110,8 +112,12 @@
          (dist (second current-state))
          (storms-next (cons (third current-state)
                             (move-all-storms (drop current-state 3))))
-         (obstacles (foldl set-union (set) storms-next))
-         (moves (set->list (set-subtract (enumerate-moves pos) obstacles))))
+         (moves (set->list (set-subtract (enumerate-moves pos)
+                                         (first storms-next)
+                                         (second storms-next)
+                                         (third storms-next)
+                                         (fourth storms-next)
+                                         (fifth storms-next)))))
     (if (= max-row (get-row pos)) dist
         (route-search
          (append (cdr states)
