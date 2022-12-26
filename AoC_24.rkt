@@ -82,17 +82,24 @@
     (if (= (get-col new-pos) wrap-from) (cons (get-row new-pos) wrap-to)
         new-pos)))
 
-;;Moves all storms. Input and output are both list containing
-;;North, East, South, and West storms in that order
-(define (move-all-storms storms)
+;;Move storm horizontal or vertical. Can do any number of timesteps.
+(define (move-storm-h pos dir steps width)
+  (cons (get-row pos)
+        (+ 1 (modulo (+ (* steps (get-col dir)) (- (get-col pos) 1)) width))))
+(define (move-storm-v pos dir steps height)
+  (cons (+ 1 (modulo (+ (* steps (get-row dir)) (- (get-row pos) 1)) height))
+        (get-col pos)))
+
+;;Finds the position of all storms at given time
+(define (move-all-storms storms steps)
   (list (list->set (set-map (first storms)
-                            (λ (x) (move-storm-n x 0 (- max-row 1)))))
+                            (λ (x) (move-storm-v x N steps (- max-row 1)))))
         (list->set (set-map (second storms)
-                            (λ (x) (move-storm-e x max-col 1))))
+                            (λ (x) (move-storm-h x E steps (- max-col 1)))))
         (list->set (set-map (third storms)
-                            (λ (x) (move-storm-s x max-row 1))))
+                            (λ (x) (move-storm-v x S steps (- max-row 1)))))
         (list->set (set-map (fourth storms)
-                            (λ (x) (move-storm-w x 0 (- max-col 1)))))))
+                            (λ (x) (move-storm-h x W steps (- max-col 1)))))))
 
 ;;Enumerate all possible moves from coord.
 (define (enumerate-moves coord)
@@ -102,16 +109,14 @@
        (add-coords coord S)
        (add-coords coord W)))
 
-(define (make-state pos dist storms-lst)
-  (cons pos (cons dist storms-lst)))
-
 ;;Bread first search. Uses a list as a queue, which may be slow.
-(define (route-search states)
+(define (route-search states initial-state)
   (let* ((current-state (car states))
          (pos (first current-state))
          (dist (second current-state))
-         (storms-next (cons (third current-state)
-                            (move-all-storms (drop current-state 3))))
+         (storms-next (cons (first initial-state)
+                            (move-all-storms (drop initial-state 1)
+                                             (+ dist 1))))
          (moves (set->list (set-subtract (enumerate-moves pos)
                                          (first storms-next)
                                          (second storms-next)
@@ -121,11 +126,12 @@
     (if (= max-row (get-row pos)) dist
         (route-search
          (append (cdr states)
-                 (map (λ (x) (make-state x (+ dist 1) storms-next))
-                      moves))))))
+                 (map (λ (x) (list x (+ dist 1)))
+                      moves))
+         initial-state))))
 
 
-(define input-file (open-input-file "Input24.txt"))
+(define input-file (open-input-file "Test24.txt"))
 ;Walls starts with one value, '(-1 . 1), to block the entrance
 (define input (read-input input-file 0 (set '(-1 . 1)) (set) (set) (set) (set)))
 (close-input-port input-file)
@@ -135,4 +141,4 @@
 (define max-row (argmax identity (map get-row (set->list (first input)))))
 
 (display "Part 1: ")
-(time (route-search (list (make-state '(0 . 1) 0 input))))
+(time (route-search (list (list '(0 . 1) 0)) input))
