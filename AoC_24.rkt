@@ -19,6 +19,10 @@
 ;;;Update: Implemented a no backtracking rule. It's now very fast, but doesn't
 ;;;reach a solution. I guess backtracking is neccessary.
 ;;;Storms have a period of 600 minutes. Can use that to prune the search.
+;;;Actually, that periodicity doesn't matter. My answer for part 1 is 308.
+;;;which is less than the period. Paths can still branch and merge, so
+;;;tracking previously visited states still reduces runtime a lot. Solving
+;;;part 1 takes ~260 seconds.
 #lang racket
 (require queue)
 
@@ -107,7 +111,7 @@
        (add-coords coord W)))
 
 ;;Bread first search. Uses a list as a queue, which may be slow.
-(define (route-search states initial-state visited period)
+(define (route-search states initial-state visited)
   (define-values (current-state q) (queue-remove states))
   (let* ((pos (first current-state))
          (dist (second current-state))
@@ -119,26 +123,24 @@
                                          (second storms-next)
                                          (third storms-next)
                                          (fourth storms-next)
-                                         (fifth storms-next))))
-         (spacetime (list (get-row pos) (get-col pos) (modulo dist period))))
+                                         (fifth storms-next)))))
     ;(printf "~a\r" dist)
     (cond  ((= max-row (get-row pos)) dist)
-           ((set-member? visited spacetime)
-            (route-search q initial-state visited period))
+           ((set-member? visited current-state)
+            (route-search q initial-state visited))
            (else
             (route-search (queue-add-list
                            q
                            (map (λ (x) (list x (+ dist 1))) moves))
                           initial-state
-                          (set-add visited spacetime)
-                          period)))))
+                          (set-add visited current-state))))))
 
 ;;Adds all items from a list into a queue, in order
 (define  (queue-add-list q lst)
   (if (null? lst) q
       (queue-add-list (queue-add q (car lst)) (cdr lst))))
 
-(define input-file (open-input-file "Test24.txt"))
+(define input-file (open-input-file "Input24.txt"))
 ;Walls starts with one value, '(-1 . 1), to block the entrance
 (define input (read-input input-file 0 (set '(-1 . 1)) (set) (set) (set) (set)))
 (close-input-port input-file)
@@ -150,5 +152,4 @@
 (display "Part 1: ")
 (time (route-search (queue-add (make-queue) (list '(0 . 1) 0))
                     input
-                    (set)
-                    (find-period (drop input 1) 1)))
+                    (set)))
