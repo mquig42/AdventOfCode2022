@@ -23,6 +23,9 @@
 ;;;which is less than the period. Paths can still branch and merge, so
 ;;;tracking previously visited states still reduces runtime a lot. Solving
 ;;;part 1 takes ~260 seconds.
+
+;;;Performance still isn't great. Maybe try a priority queue based on manhattan
+;;;distance to endpoint.
 #lang racket
 (require queue)
 
@@ -111,7 +114,7 @@
        (add-coords coord W)))
 
 ;;Bread first search. Uses a list as a queue, which may be slow.
-(define (route-search states initial-state visited)
+(define (route-search states initial-state dest-row visited)
   (define-values (current-state q) (queue-remove states))
   (let* ((pos (first current-state))
          (dist (second current-state))
@@ -125,14 +128,15 @@
                                          (fourth storms-next)
                                          (fifth storms-next)))))
     ;(printf "~a\r" dist)
-    (cond  ((= max-row (get-row pos)) dist)
+    (cond  ((= dest-row (get-row pos)) current-state)
            ((set-member? visited current-state)
-            (route-search q initial-state visited))
+            (route-search q initial-state dest-row visited))
            (else
             (route-search (queue-add-list
                            q
                            (map (λ (x) (list x (+ dist 1))) moves))
                           initial-state
+                          dest-row
                           (set-add visited current-state))))))
 
 ;;Adds all items from a list into a queue, in order
@@ -149,7 +153,24 @@
 (define max-col (argmax identity (map get-col (set->list (first input)))))
 (define max-row (argmax identity (map get-row (set->list (first input)))))
 
-(display "Part 1: ")
-(time (route-search (queue-add (make-queue) (list '(0 . 1) 0))
-                    input
-                    (set)))
+(time
+ (define first-trip (route-search (queue-add (make-queue) (list '(0 . 1) 0))
+                                  input
+                                  max-row
+                                  (set)))
+ (printf "First crossing at t=~a\r" (second first-trip))
+
+ (define input2
+   (list-set input 0
+             (set-add (first input) (add-coords (first first-trip) S))))
+ (define return-trip (route-search (queue-add (make-queue) first-trip)
+                                   input2
+                                   0
+                                   (set)))
+ (printf "Returned to start at t=~a\r" (second return-trip))
+
+ (define second-trip (route-search (queue-add (make-queue) return-trip)
+                                   input2
+                                   max-row
+                                   (set)))
+ (printf "Second crossing at t=~a\r" (second second-trip)))
