@@ -10,7 +10,17 @@
 ;;;answer on the sample input, but is slow.
 ;;;Update: It's not just slow, it runs out of memory. I need a smaller way
 ;;;of representing state instead of storing the position of every storm
+;;;Update: improved everything. States are small, and I used a proper queue
+;;;instead of a list. It still doesn't reach an answer after running all night.
+;;;Time for heuristics. Maybe a "no backtracking" rule. Don't move to the same
+;;;space you just moved from. This also means no waiting for two minutes in
+;;;a row. I'm not sure if this would get the correct answer, but it would cut
+;;;the search space.
+;;;Update: Implemented a no backtracking rule. It's now very fast, but doesn't
+;;;reach a solution. I guess backtracking is neccessary.
+;;;Storms have a period of 600 minutes. Can use that to prune the search.
 #lang racket
+(require queue)
 
 ;;Read one row of input
 (define (read-row line row-no walls n-storms e-storms s-storms w-storms)
@@ -64,24 +74,6 @@
 (define S '(1 . 0))
 (define W '(0 . -1))
 
-;;Functions for storm movement
-(define (move-storm-n pos wrap-from wrap-to)
-  (let ((new-pos (add-coords pos N)))
-    (if (= (get-row new-pos) wrap-from) (cons wrap-to (get-col new-pos))
-        new-pos)))
-(define (move-storm-e pos wrap-from wrap-to)
-  (let ((new-pos (add-coords pos E)))
-    (if (= (get-col new-pos) wrap-from) (cons (get-row new-pos) wrap-to)
-        new-pos)))
-(define (move-storm-s pos wrap-from wrap-to)
-  (let ((new-pos (add-coords pos S)))
-    (if (= (get-row new-pos) wrap-from) (cons wrap-to (get-col new-pos))
-        new-pos)))
-(define (move-storm-w pos wrap-from wrap-to)
-  (let ((new-pos (add-coords pos W)))
-    (if (= (get-col new-pos) wrap-from) (cons (get-row new-pos) wrap-to)
-        new-pos)))
-
 ;;Move storm horizontal or vertical. Can do any number of timesteps.
 (define (move-storm-h pos dir steps width)
   (cons (get-row pos)
@@ -101,6 +93,11 @@
         (list->set (set-map (fourth storms)
                             (λ (x) (move-storm-h x W steps (- max-col 1)))))))
 
+;;Storms might have a period. Find it
+(define (find-period storms steps)
+  (if (equal? (move-all-storms storms steps) storms) steps
+      (find-period storms (+ steps 1))))
+
 ;;Enumerate all possible moves from coord.
 (define (enumerate-moves coord)
   (set coord
@@ -110,9 +107,9 @@
        (add-coords coord W)))
 
 ;;Bread first search. Uses a list as a queue, which may be slow.
-(define (route-search states initial-state)
-  (let* ((current-state (car states))
-         (pos (first current-state))
+(define (route-search states initial-state visited period)
+  (define-values (current-state q) (queue-remove states))
+  (let* ((pos (first current-state))
          (dist (second current-state))
          (storms-next (cons (first initial-state)
                             (move-all-storms (drop initial-state 1)
@@ -122,14 +119,24 @@
                                          (second storms-next)
                                          (third storms-next)
                                          (fourth storms-next)
-                                         (fifth storms-next)))))
-    (if (= max-row (get-row pos)) dist
-        (route-search
-         (append (cdr states)
-                 (map (λ (x) (list x (+ dist 1)))
-                      moves))
-         initial-state))))
+                                         (fifth storms-next))))
+         (spacetime (list (get-row pos) (get-col pos) (modulo dist period))))
+    ;(printf "~a\r" dist)
+    (cond  ((= max-row (get-row pos)) dist)
+           ((set-member? visited spacetime)
+            (route-search q initial-state visited period))
+           (else
+            (route-search (queue-add-list
+                           q
+                           (map (λ (x) (list x (+ dist 1))) moves))
+                          initial-state
+                          (set-add visited spacetime)
+                          period)))))
 
+;;Adds all items from a list into a queue, in order
+(define  (queue-add-list q lst)
+  (if (null? lst) q
+      (queue-add-list (queue-add q (car lst)) (cdr lst))))
 
 (define input-file (open-input-file "Test24.txt"))
 ;Walls starts with one value, '(-1 . 1), to block the entrance
@@ -141,4 +148,7 @@
 (define max-row (argmax identity (map get-row (set->list (first input)))))
 
 (display "Part 1: ")
-(time (route-search (list (list '(0 . 1) 0)) input))
+(time (route-search (queue-add (make-queue) (list '(0 . 1) 0))
+                    input
+                    (set)
+                    (find-period (drop input 1) 1)))
