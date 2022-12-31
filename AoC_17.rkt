@@ -10,7 +10,33 @@
 ;;;entire board after dropping 10,000 rocks, and dumped the results into Gnuplot
 ;;;The board has a repeating pattern of length 2642, which is a lot shorter
 ;;;than I was expecting. I should be able to exploit that to skip a lot
-;;;of steps. 
+;;;of steps. This will involve some manual analysis.
+
+;;;Exact details of the pattern: The hash value 88, representing a level state
+;;;of (1 0 1 1 0 0 0), occurs twice in a row, once per cycle. This value is
+;;;important only in its rarity, but I can regard it as the cycle's endpoint.
+
+;;;If I drop 200 rocks, the hash values at the top of the stack are
+;;;24, 24, 16, 18, 114, 18, 58, 31, 14...
+;;;The 24s are the levels that will become 88 when 204 rocks are dropped.
+;;;The same pattern occurs at the top of the stack after dropping 1900 rocks
+;;;and 3600, and 5300 and so on. The cycle length is 1700 rocks
+
+;;;Oddly enough, the goal of 1000000000000 rocks is (1700 * 588235294) + 200
+;;;Having 200 and 1700 in there looks like I was meant to find this exact
+;;;pattern. Maybe it's set up so hash value 88 occurs exactly where it does
+;;;on purpose.
+;;;Let's try using math to predict sim results.
+;;;Height after n rocks:
+;;;   200: 322
+;;;  1900: 2964
+;;;  3600: 5606
+;;;That's a difference of 2642 each time, as expected.
+;;;Let's try dropping (1700 * 12) + 200 = 20600 rocks.
+;;;Height should be (2642 * 12) + 322 = 32026
+;;;Tried running the sim, and got that exact answer.
+;;;In that case, part 2 is (2642 * 588235294) + 322 = 1554117647070
+;;;And, confirmed! That's my final star for 2022
 #lang racket
 
 (define (read-input file)
@@ -117,3 +143,5 @@
 
 (display "Part 1: ")
 (- (length (board-trim (run-sim (add-levels board 7) 0 0 '(3 . 2) 0 2022))) 1)
+
+(display "Part 2: See comment block at beginning of file for math")
